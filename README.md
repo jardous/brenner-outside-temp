@@ -33,5 +33,5 @@ sends it to the device:
     target:
       entity_id: number.oil_heater_outside_temperatur
     data:
-      value: '{{ state_attr(''weather.home'', ''forecast'')[0].temperature }}'
+      value: '{{ state_attr(''weather.home'', ''temperature'') }}'
 ```
