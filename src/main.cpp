@@ -78,7 +78,7 @@ Copyright (c) 2019, P. Lutus -- http://arachnoid.com. All Rights Reserved.
 WiFiClient client;
 HADevice device;
 HAMqtt mqtt(client, device);
-HANumber number("outside-temp", HABaseDeviceType::PrecisionP1);
+HANumber outsideTemp("outside-temp", HABaseDeviceType::PrecisionP1);
 HASensorNumber rssiSensor("rssi");
 
 
@@ -128,25 +128,25 @@ void connect() {
     device.setSoftwareVersion("1.0.0");
 
     // handle command from the HA panel
-    number.onCommand(onNumberCommand);
+    outsideTemp.onCommand(onNumberCommand);
 
     // Optional configuration
-    number.setIcon("mdi:thermometer");
-    number.setName("Outside Temp");
-    number.setMin(-20);
-    number.setMax(50);
-    number.setStep(0.5f); // minimum step: 0.001f
-    number.setUnitOfMeasurement("°C");
-    //number.setMode(HANumber::ModeBox);
-    number.setMode(HANumber::ModeSlider);
+    outsideTemp.setIcon("mdi:thermometer");
+    outsideTemp.setName("Outside Temp");
+    outsideTemp.setMin(-20);
+    outsideTemp.setMax(50);
+    outsideTemp.setStep(0.5f); // minimum step: 0.001f
+    outsideTemp.setUnitOfMeasurement("°C");
+    //outsideTemp.setMode(HANumber::ModeBox);
+    outsideTemp.setMode(HANumber::ModeSlider);
     
 
     // You can set retain flag for the HA commands
-    //number.setRetain(true);
+    outsideTemp.setRetain(true);
 
     // You can also enable optimistic mode for the HASelect.
     // In this mode you won't need to report state back to the HA when commands are executed.
-    // number.setOptimistic(true);
+    // outsideTemp.setOptimistic(true);
 
     // reporting RSSI
     rssiSensor.setIcon("mdi:wifi");
