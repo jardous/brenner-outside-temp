@@ -1,5 +1,5 @@
 // Replacing the Oil heater outside temperature wired thermomenter
-// Using PmodPOT  from DIGILENT to fake the thermometer readings.
+// Using PmodPOT from DIGILENT to fake the thermometer readings.
 // Temperature is reported from Home Assisntant and translated to
 // the variable resistance that the heater control unit reads.
 // 
@@ -12,23 +12,23 @@
 // Data measurements
 /*
  Temp 
--21.6 218
--19.2 193
--16.7 167
--12.9	137
- -6.6	100
- -4.3	89
-  1.3	66
- 10.3	45
- 13	  40
- 14.2	38
- 17.3	33
- 20.2	29
- 22.7	26
- 24.6	24
- 29.1	20
- 39.5	13
- 50    8
+    -21.6 218
+    -19.2 193
+    -16.7 167
+    -12.9	137
+    -6.6	100
+    -4.3	89
+    1.3	66
+    10.3	45
+    13	  40
+    14.2	38
+    17.3	33
+    20.2	29
+    22.7	26
+    24.6	24
+    29.1	20
+    39.5	13
+    50    8
 
 https://arachnoid.com/polysolve/
 
@@ -92,7 +92,7 @@ void onNumberCommand(HANumeric number, HANumber* sender)
         Serial.println(numberFloat);
 
         uint16_t val = round(regress(numberFloat));
-        Serial.print("Setting to ");
+        Serial.print("Setting the digital potentiometer value to ");
         Serial.println(val);
 
         // begin transmission
@@ -139,7 +139,6 @@ void connect() {
     outsideTemp.setUnitOfMeasurement("°C");
     //outsideTemp.setMode(HANumber::ModeBox);
     outsideTemp.setMode(HANumber::ModeSlider);
-    
 
     // You can set retain flag for the HA commands
     outsideTemp.setRetain(true);
@@ -181,7 +180,7 @@ void loop() {
     //sleep(500);
 
     if (!client.connected()) {
-        Serial.println("reconnecting ");
+        Serial.println("reconnecting");
         connect();
     }
 
