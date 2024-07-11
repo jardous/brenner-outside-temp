@@ -1,0 +1,180 @@
+substitutions:
+  name: heater-outside-temp
+  friendly_name: Heater - outside temp
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2024.6.0
+  name_add_mac_suffix: false
+  project:
+    name: esphome.web
+    version: '1.0'
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+# Allow Over-The-Air updates
+ota:
+- platform: esphome
+
+# Allow provisioning Wi-Fi via serial
+improv_serial:
+
+wifi:
+  # Set up a wifi access point
+  ap: {}
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device via WiFi AP.
+captive_portal:
+
+dashboard_import:
+  package_import_url: github://esphome/firmware/esphome-web/esp32c3.yaml@main
+  import_full_config: true
+
+# Sets up Bluetooth LE (Only on ESP32) to allow the user
+# to provision wifi credentials to the device.
+esp32_improv:
+  authorizer: none
+
+# To have a "next url" for improv serial
+web_server:
+
+# for testing purposes
+number:
+  - platform: template
+    name: set_temperature
+    id: set_temperature
+    min_value: -20
+    max_value: 50
+    optimistic: True
+    step: 1
+    unit_of_measurement: "°C"
+    on_value:
+      then:
+        lambda: !lambda |-
+          id(current_temperature).publish_state(x);
+
+#[18:34:26][D][homeassistant.sensor:022]: 'weather.home::temperature': Got attribute state 23.60
+#[18:34:26][D][sensor:094]: 'current_temperature_src': Sending state 23.60000  with 1 decimals of accuracy
+#[18:34:26][D][sensor:094]: 'Current Temperature': Sending state 23.60000  with 1 decimals of accuracy
+#[18:34:26][D][Value set to :090]: 24.000000
+#[18:34:26][D][sensor:094]: 'Current Temperature Pot': Sending state 25.59142  with 1 decimals of accuracy
+#[18:34:26][D][Written :129]: 26.000000
+#[18:34:57][D][number:054]: 'set_temperature' - Setting number value
+#[18:34:57][D][number:113]:   New number value: 1.000000
+#[18:34:57][D][number:012]: 'set_temperature': Sending state 1.000000
+#[18:34:57][D][sensor:094]: 'Current Temperature': Sending state 1.00000  with 1 decimals of accuracy
+#[18:34:57][D][Value set to :090]: 1.000000
+#[18:34:57][D][sensor:094]: 'Current Temperature Pot': Sending state 67.82259  with 1 decimals of accuracy
+#[18:34:57][D][Written :129]: 68.000000
+
+
+# https://digilent.com/reference/_media/reference/pmod/pmoddpot/pmoddpot_rm.pdf
+sensor:
+  - platform: homeassistant
+    id: current_temperature_src
+    entity_id: weather.home
+    attribute: temperature
+
+  - platform: copy
+    name: "Current Temperature"
+    source_id: current_temperature_src
+    id: current_temperature
+    on_value: 
+      then: 
+        lambda: !lambda |-
+          ESP_LOGD("Value set to ", "%f", round(x));
+
+  - platform: copy
+    name: "Current Temperature Pot"
+    source_id: current_temperature
+    id: temperature_setter
+    internal: true
+    filters:
+      - clamp:
+          min_value: -22
+          max_value: 50
+          #ignore_out_of_range: true
+      #- round: 1  # will round to 1 decimal place
+      - calibrate_polynomial:
+          degree: 4
+          datapoints:
+            # Map (from sensor) to (true value)
+            - -21.6 -> 218
+            - -19.2 -> 193
+            - -16.7 -> 167
+            - -12.9 -> 137
+            - -6.6 -> 100
+            - -4.3 -> 89
+            - 1.3 -> 66
+            - 10.3 -> 45
+            - 13 -> 40
+            - 14.2 -> 38
+            - 17.3 -> 33
+            - 20.2 -> 29
+            - 22.7 -> 26
+            - 24.6 -> 24
+            - 29.1 -> 20
+            - 39.5 -> 13
+            - 50 -> 8
+    # ...
+    on_value:
+      then:
+        lambda: !lambda |-
+          char xxx = round(x);
+          ESP_LOGD("Writting ", "%f", x);
+          id(spidev).enable();
+          id(spidev).write_byte(xxx);
+          id(spidev).disable();
+          ESP_LOGD("Written ", "%d", xxx);
+#    lambda: |-
+#      raw_to_float.raw =   data[0] << 24 | data[1] << 16 | data[2] << 8 |  data[3];
+#      ESP_LOGD("Modbus Sensor Lambda", "FP32 = 0x%08X => %f", raw_to_float.raw, raw_to_float.float_value);
+#      return raw_to_float.float_value;
+#    on_value:
+#       then:
+#      - lambda: !lambda |-
+#          id(spidev).enable();
+#          id(spidev).write_byte(0x4F);
+#          id(spidev).disable();
+
+
+
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: "diagnostic"
+    device_class: ""
+
+
+spi:
+  clk_pin: GPIO08
+  mosi_pin: GPIO09
+  miso_pin: GPIO10
+  interface: hardware
+
+spi_device:
+  id: spidev
+  cs_pin: GPIO04
+  data_rate: 1MHz
+  mode: 0
+  #bit_order: lsb_first
